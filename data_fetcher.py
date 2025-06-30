@@ -6,14 +6,14 @@ import time
 import os
 import streamlit as st
 
-alpha_vantage_api_key = os.getenv("ALPHA_VANTAGE_API_KEY.env")
+alpha_vantage_api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "1JUV860DC7YJRVYM")
 
 class StockDataFetcher:
     """Handles fetching stock data from Alpha Vantage API"""
     
     def __init__(self):
         # Get API key from environment variables with fallback
-        self.api_key = os.getenv("ALPHA_VANTAGE_API_KEY.env", "demo")
+        self.api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "demo")
         self.base_url = "https://www.alphavantage.co/query"
         
     def get_stock_data(self, symbol, interval="1min", outputsize="compact"):
@@ -46,7 +46,6 @@ class StockDataFetcher:
             # Check for API errors
             if "Error Message" in data:
                 st.error(f"API Error: {data['Error Message']}")
-                st.info("This stock symbol may not be supported for intraday data by Alpha Vantage. Try a different symbol (e.g., AAPL, MSFT, TSLA) or check the documentation for supported symbols.")
                 return None
             
             if "Note" in data:

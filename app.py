@@ -22,15 +22,33 @@ from explanation_engine import ExplanationEngine
 from utils import load_or_create_model, format_prediction_time
 from database import get_database_manager, init_database
 
-def create_markdown_download():
-    """Create a download for the markdown file only"""
-    md_file = 'replit.md'  # or 'requirements.md' if you want that one
-    if os.path.exists(md_file):
-        with open(md_file, 'rb') as f:
-            md_data = f.read()
-        return md_data
-    else:
-        return None
+def create_source_code_zip():
+    """Create a zip file with all source code files"""
+    zip_buffer = io.BytesIO()
+    
+    # List of source files to include
+    source_files = [
+        'app.py',
+        'data_fetcher.py',
+        'technical_analysis.py',
+        'ml_predictor.py',
+        'pattern_detector.py',
+        'visualization.py',
+        'explanation_engine.py',
+        'database.py',
+        'utils.py',
+        'requirements.md',
+        'replit.md',
+        '.streamlit/config.toml'
+    ]
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for file_path in source_files:
+            if os.path.exists(file_path):
+                zip_file.write(file_path)
+    
+    zip_buffer.seek(0)
+    return zip_buffer.getvalue()
 
 # Page configuration
 st.set_page_config(
@@ -149,21 +167,20 @@ def main():
         
         # Source Code Download Section
         st.sidebar.markdown("---")
-        st.sidebar.subheader("📄 Download Markdown File")
+        st.sidebar.subheader("💻 Source Code")
+        
+        # Create download button for source code
         try:
-            md_data = create_markdown_download()
-            if md_data:
-                st.sidebar.download_button(
-                    label="📥 Download replit.md",
-                    data=md_data,
-                    file_name="replit.md",
-                    mime="text/markdown",
-                    help="Download the markdown file only"
-                )
-            else:
-                st.sidebar.error("Markdown file not found.")
+            zip_data = create_source_code_zip()
+            st.sidebar.download_button(
+                label="📥 Download Source Code",
+                data=zip_data,
+                file_name="ai_stock_predictor_source.zip",
+                mime="application/zip",
+                help="Download all source code files in a zip archive"
+            )
         except Exception as e:
-            st.sidebar.error(f"Markdown download error: {str(e)}")
+            st.sidebar.error(f"Source code download error: {str(e)}")
     
     # Main content area
     if predict_button:
@@ -197,36 +214,22 @@ def main():
                 
                 if df is None or df.empty:
                     st.error("Failed to fetch stock data. Please check the symbol and try again.")
-                    progress_bar.empty()
-                    status_text.empty()
                     return
                 
                 # Step 2: Technical analysis
                 status_text.text("📈 Calculating technical indicators...")
                 progress_bar.progress(40)
                 df_with_indicators = technical_analyzer.add_all_indicators(df)
-                if df_with_indicators is None or df_with_indicators.empty:
-                    st.error("Technical analysis failed. No data to analyze.")
-                    progress_bar.empty()
-                    status_text.empty()
-                    return
                 
                 # Step 3: Pattern detection
                 status_text.text("🔍 Detecting candlestick patterns...")
                 progress_bar.progress(60)
                 patterns = pattern_detector.detect_patterns(df_with_indicators)
-                if patterns is None:
-                    patterns = []
                 
                 # Step 4: ML prediction
                 status_text.text("🧠 Making AI prediction...")
                 progress_bar.progress(80)
                 prediction_result = ml_predictor.predict(df_with_indicators, timeframe)
-                if not isinstance(prediction_result, dict) or not all(k in prediction_result for k in ["prediction", "confidence", "action"]):
-                    st.error("Prediction failed. The model did not return a valid result.")
-                    progress_bar.empty()
-                    status_text.empty()
-                    return
                 
                 # Step 5: Generate explanation
                 status_text.text("💭 Generating explanation...")
@@ -259,19 +262,16 @@ def main():
                 # Display chart with fallback handling
                 st.subheader("📈 Interactive Chart")
                 try:
-                    if df_with_indicators is not None and not df_with_indicators.empty:
-                        chart = visualizer.create_candlestick_chart(df_with_indicators, symbol, chart_type)
+                    chart = visualizer.create_candlestick_chart(df_with_indicators, symbol, chart_type)
+                    if chart is not None:
+                        st.plotly_chart(chart, use_container_width=True)
+                    else:
+                        st.error("Chart display failed. Trying line chart...")
+                        chart = visualizer.create_candlestick_chart(df_with_indicators, symbol, "Line")
                         if chart is not None:
                             st.plotly_chart(chart, use_container_width=True)
                         else:
-                            st.error("Chart display failed. Trying line chart...")
-                            chart = visualizer.create_candlestick_chart(df_with_indicators, symbol, "Line")
-                            if chart is not None:
-                                st.plotly_chart(chart, use_container_width=True)
-                            else:
-                                st.error("Unable to display chart")
-                    else:
-                        st.error("No data available for charting.")
+                            st.error("Unable to display chart")
                 except Exception as chart_error:
                     st.warning(f"Chart display issue: {str(chart_error)}")
                     st.info("Displaying simplified line chart...")
@@ -333,16 +333,7 @@ def display_prediction_results(prediction_result, explanation, confidence_thresh
     prediction = prediction_result['prediction']
     confidence = prediction_result['confidence']
     action = prediction_result['action']
-    error_msg = prediction_result.get('error', None)
-
-    # If prediction is not available or confidence is 0, show a clearer message
-    if prediction == "N/A" or confidence == 0.0:
-        if error_msg:
-            st.error(f"❌ Prediction unavailable: {error_msg}")
-        else:
-            st.warning("⚠️ The model could not make a prediction. This may be due to insufficient or poor-quality data.")
-        return
-
+    
     # Only show prediction if confidence is above threshold
     if confidence >= confidence_threshold:
         # Color coding based on action

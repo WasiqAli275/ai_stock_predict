@@ -2,103 +2,150 @@
 
 ## Overview
 
-This is an AI-powered stock market prediction web application built with Streamlit. It provides real-time stock analysis and predictions using machine learning models, technical analysis, and pattern recognition. The app predicts short-term stock price movements (1min, 5min, 10min) and provides actionable trading recommendations with natural language explanations.
-
-## Features
-
-- **Real-time Stock Data**: Fetches live stock data from Alpha Vantage API.
-- **Multiple ML Models**: Supports Random Forest, XGBoost, and SVM for predictions.
-- **Technical Analysis**: Calculates 19+ technical indicators (RSI, MACD, Bollinger Bands, ATR, etc.).
-- **Pattern Recognition**: Detects candlestick and chart patterns (Hammer, Doji, Engulfing, etc.).
-- **Interactive Charts**: Uses Plotly for candlestick, line, and OHLC charts with technical overlays.
-- **Natural Language Explanations**: Converts technical signals into plain English for all users.
-- **Educational Mode**: Beginner-friendly explanations and learning content.
-- **Database Integration**: Stores data, predictions, and user sessions in PostgreSQL.
-- **Downloadable Markdown**: Users can download the system documentation as a markdown file.
-- **Error Handling**: Graceful error messages for API/data/model issues.
-- **Custom Styling**: Modern UI with custom CSS, emoji support, and responsive layout.
+This is an AI-powered stock market prediction web application built with Streamlit that provides real-time stock analysis and predictions. The system uses machine learning models, technical analysis, and pattern recognition to predict short-term stock price movements (10 seconds to 10 minutes) and provides actionable trading recommendations with natural language explanations.
 
 ## System Architecture
 
-### Frontend
+### Frontend Architecture
 
-- **Framework**: Streamlit
-- **Visualization**: Plotly for interactive charts
-- **UI/UX**: Custom CSS, emoji icons, wide layout, sidebar controls
-- **Download**: Markdown file download button in sidebar
+- **Framework**: Streamlit web application framework
+- **Visualization**: Interactive charts using Plotly for candlestick charts and technical indicators
+- **UI/UX**: Dark theme with custom CSS styling for professional trading interface
+- **Responsiveness**: Wide layout configuration with expandable sidebar for controls
 
-### Backend
+### Backend Architecture
 
-- **Data Fetching**: Alpha Vantage API (with API key)
-- **Technical Analysis**: `ta` library for indicators
-- **Pattern Detection**: Custom pattern recognition module
-- **ML Prediction**: Random Forest, XGBoost, SVM (classification + regression)
-- **Database**: PostgreSQL for persistence and analytics
-- **Model Management**: Pickle-based model saving/loading
+- **Modular Design**: Component-based architecture with separate modules for different functionalities
+- **Data Processing Pipeline**: Sequential data flow from fetching → analysis → prediction → visualization
+- **Model Management**: Pickle-based model persistence with automatic loading/creation
+- **Real-time Processing**: Live data fetching and analysis capabilities
+- **Database Integration**: PostgreSQL database for data persistence and historical analysis
+- **Session Management**: User preferences and prediction history tracking
 
-## Data Flow
+### Machine Learning Pipeline
 
-1. **User Input**: Stock symbol, timeframe, model selection
-2. **Data Fetching**: Real-time data from Alpha Vantage
-3. **Technical Analysis**: Indicators calculated and added to data
-4. **Pattern Detection**: Candlestick and chart patterns identified
-5. **ML Prediction**: Model predicts direction and confidence
-6. **Explanation**: AI generates natural language summary
-7. **Visualization**: Interactive chart and stats displayed
-8. **Database Storage**: Data and predictions saved for analytics
-9. **Download**: User can download documentation as markdown
+- **Algorithms**: Multiple ML models including Random Forest, XGBoost, and SVM
+- **Feature Engineering**: 19+ technical indicators as input features
+- **Model Types**: Both classification (direction prediction) and regression (price target)
+- **Training Strategy**: Automatic model training with feature scaling and validation
 
 ## Key Components
 
-- `app.py`: Main Streamlit app, UI, and workflow
-- `data_fetcher.py`: Fetches and validates stock data
-- `technical_analysis.py`: Adds technical indicators
-- `pattern_detector.py`: Detects chart/candlestick patterns
-- `ml_predictor.py`: ML model training, prediction, and management
-- `visualization.py`: Chart creation and display
-- `explanation_engine.py`: Generates natural language explanations
-- `database.py`: Handles database operations
-- `utils.py`: Helper functions and model utilities
+### 1. Data Layer (`data_fetcher.py`)
 
-## Usage
+- **Purpose**: Fetches real-time stock data from Alpha Vantage API
+- **Features**: Supports multiple timeframes (1min, 5min, 15min, 30min, 60min)
+- **Fallback**: Demo data generation when API limits are reached
+- **Error Handling**: Comprehensive error management for API failures
 
-1. **Set Environment Variables**:
-   - `ALPHA_VANTAGE_API_KEY`: Your Alpha Vantage API key
-   - `DATABASE_URL`: PostgreSQL connection string (e.g., `postgresql://user:pass@host:port/db`)
-2. **Install Requirements**:
-   - All dependencies listed in `requirements.md`
-3. **Run the App**:
-   - `streamlit run app.py`
-4. **Interact**:
-   - Enter a stock symbol (e.g., AAPL, MSFT, TSLA)
-   - Select timeframe and model
-   - Click Predict to see analysis, chart, and explanation
-   - Download documentation from the sidebar
+### 8. Database Layer (`database.py`)
 
-## Error Handling
+- **Purpose**: PostgreSQL database integration for data persistence
+- **Tables**: StockData, TechnicalIndicators, Predictions, DetectedPatterns, UserSessions
+- **Features**: Historical data storage, prediction tracking, user session management
+- **Analytics**: Database statistics and prediction history analysis
 
-- **API Errors**: User-friendly messages if symbol is invalid or API limit is reached
-- **Model Errors**: Clear feedback if not enough data or class variety for training
-- **Chart Errors**: Fallback to line chart if candlestick fails
-- **Download Errors**: Message if markdown file is missing
+### 2. Technical Analysis Engine (`technical_analysis.py`)
 
-## Customization
+- **Indicators**: RSI, MACD, Bollinger Bands, ATR, ADX, Stochastic, Williams %R, MFI, CMF, OBV
+- **Categories**: Trend, momentum, volatility, and volume indicators
+- **Library**: Uses the `ta` (Technical Analysis) library for reliable calculations
+- **Data Cleaning**: Automatic handling of missing data and outliers
 
-- **Styling**: Custom CSS for headers, prediction boxes, and emoji icons
-- **Educational Content**: Expanders in sidebar for RSI, MACD, Bollinger Bands, and trading tips
-- **Popular Stocks**: Quick buttons for popular US stocks
+### 3. Pattern Recognition (`pattern_detector.py`)
 
-## Deployment
+- **Candlestick Patterns**: Hammer, Doji, Engulfing, Morning/Evening Star, etc.
+- **Chart Patterns**: Support/Resistance, trend lines, breakouts
+- **Technical Patterns**: Moving average crossovers, momentum divergences
+- **Signal Generation**: Bullish/bearish pattern classification
 
-- **Platform**: Replit (or any Python 3.11+ environment)
-- **Port**: 5000 (configurable)
-- **Scaling**: Autoscaling supported on Replit
-- **Persistence**: Database and model files saved between sessions
+### 4. Machine Learning Predictor (`ml_predictor.py`)
+
+- **Model Selection**: Configurable ML algorithms (Random Forest, XGBoost, SVM)
+- **Feature Set**: 19 engineered features from technical indicators
+- **Dual Prediction**: Classification for direction + regression for price targets
+- **Model Persistence**: Automatic saving/loading of trained models
+
+### 5. Visualization Engine (`visualization.py`)
+
+- **Chart Types**: Candlestick, line, and OHLC charts
+- **Subplots**: Multi-panel layout with price, volume, RSI, and MACD
+- **Interactivity**: Zoom, pan, hover tooltips, and indicator overlays
+- **Real-time Updates**: Dynamic chart updates with new data
+
+### 6. AI Explanation Engine (`explanation_engine.py`)
+
+- **Natural Language**: Converts technical analysis into plain English explanations
+- **Template System**: Context-aware explanation templates for different market conditions
+- **Educational Mode**: Beginner-friendly explanations with learning content
+- **Confidence Scoring**: Explanation quality based on signal strength
+
+### 7. Utility Functions (`utils.py`)
+
+- **Model Management**: Loading, saving, and validation of ML models
+- **Data Utilities**: Time formatting, data validation, and helper functions
+- **Configuration**: Environment variable management and settings
+
+## Data Flow
+
+1. **Data Acquisition**: Stock symbol input → Alpha Vantage API call → Raw OHLCV data
+2. **Technical Analysis**: Raw data → Technical indicators calculation → Enhanced dataset
+3. **Pattern Detection**: Enhanced data → Pattern recognition → Signal identification
+4. **ML Prediction**: Features → Trained model → Prediction + confidence score
+5. **Explanation Generation**: Prediction + indicators → Natural language explanation
+6. **Visualization**: All data → Interactive charts → User display
+7. **Action Recommendation**: Prediction + patterns → BUY/SELL/HOLD recommendation
+
+## External Dependencies
+
+### Core Libraries
+
+- **streamlit**: Web application framework
+- **pandas**: Data manipulation and analysis
+- **numpy**: Numerical computing
+- **plotly**: Interactive visualization
+- **scikit-learn**: Machine learning algorithms
+- **xgboost**: Gradient boosting framework
+- **ta**: Technical analysis indicators
+- **requests**: HTTP API calls
+
+### API Services
+
+- **Alpha Vantage**: Free stock market data provider
+- **Environment Variables**: API key management through `ALPHA_VANTAGE_API_KEY`
+
+### Development Tools
+
+- **pickle**: Model serialization
+- **warnings**: Error suppression for cleaner output
+- **datetime/time**: Time handling and formatting
+
+## Deployment Strategy
+
+### Platform Configuration
+
+- **Target Platform**: Replit with automatic scaling deployment
+- **Runtime**: Python 3.11 with Nix package management
+- **Port Configuration**: Streamlit server on port 5000
+- **Package Management**: UV package manager for dependency resolution
+
+### Deployment Process
+
+1. **Dependency Installation**: Automatic installation via UV package manager
+2. **Environment Setup**: Nix-based environment with required system packages
+3. **Application Launch**: Streamlit server with custom port configuration
+4. **Autoscaling**: Automatic resource scaling based on demand
+
+### Performance Optimizations
+
+- **Model Caching**: Pickle-based model persistence to avoid retraining
+- **Data Caching**: Streamlit's caching mechanisms for API responses
+- **Lazy Loading**: Components loaded on-demand for faster startup
+- **Error Resilience**: Graceful degradation when services are unavailable
 
 ## Changelog
 
-- June 27, 2025: Initial setup
-- June 30, 2025: Improved error handling, markdown download, and UI enhancements
+- June 27, 2025. Initial setup
 
 ## User Preferences
 

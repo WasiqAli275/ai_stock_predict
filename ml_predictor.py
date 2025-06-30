@@ -107,14 +107,12 @@ class MLPredictor:
         
         # Classification target (UP/DOWN/SUSTAIN)
         threshold = 0.002  # 0.2% threshold
-
-        # Explicitly set categories before assignment
+        
         classification_target = pd.Series(index=df.index, dtype='category')
-        classification_target = classification_target.cat.set_categories(['UP', 'DOWN', 'SUSTAIN'])
         classification_target[returns > threshold] = 'UP'
         classification_target[returns < -threshold] = 'DOWN'
         classification_target[(returns >= -threshold) & (returns <= threshold)] = 'SUSTAIN'
-
+        
         # Regression target (actual return percentage)
         regression_target = returns
         
@@ -150,15 +148,10 @@ class MLPredictor:
             features = features[mask]
             class_target = class_target[mask]
             reg_target = reg_target[mask]
-
+            
             if len(features) < 50:
                 return {"error": "Insufficient training data"}
-
-            # Check for at least two unique classes
-            unique_classes = class_target.dropna().unique()
-            if len(unique_classes) < 2:
-                return {"error": "Not enough class variety in data for training. The model needs at least two classes (e.g., UP and DOWN). Try a different symbol or timeframe."}
-
+            
             # Store feature columns
             self.feature_columns = features.columns.tolist()
             
@@ -242,35 +235,34 @@ class MLPredictor:
             if not self.is_trained or self.classification_model is None:
                 training_result = self.train_models(df, timeframe)
                 if "error" in training_result:
-                    return {
-                        "prediction": "N/A",
-                        "confidence": 0.0,
-                        "action": "HOLD",
-                        "error": training_result["error"]
-                    }
+                    return {"error": training_result["error"]}
+            
             # Prepare features
             features = self._prepare_features(df)
+            
             if features.empty:
-                return {
-                    "prediction": "N/A",
-                    "confidence": 0.0,
-                    "action": "HOLD",
-                    "error": "No features available for prediction"
-                }
+                return {"error": "No features available for prediction"}
+            
             # Use the last row for prediction
             latest_features = features.iloc[-1:][self.feature_columns]
+            
             # Handle missing columns
             for col in self.feature_columns:
                 if col not in latest_features.columns:
                     latest_features[col] = 0
+            
             # Scale features
             latest_scaled = self.scaler.transform(latest_features)
+            
             # Make predictions
             class_pred = self.classification_model.predict(latest_scaled)[0]
             class_proba = self.classification_model.predict_proba(latest_scaled)[0]
+            
             reg_pred = self.regression_model.predict(latest_scaled)[0]
+            
             # Get confidence (max probability)
             confidence = max(class_proba)
+            
             # Determine action
             if class_pred == 'UP':
                 action = 'BUY'
@@ -278,9 +270,11 @@ class MLPredictor:
                 action = 'SELL'
             else:
                 action = 'HOLD'
+            
             # Adjust action based on confidence
             if confidence < 0.6:
                 action = 'HOLD'
+            
             return {
                 "prediction": class_pred,
                 "confidence": confidence,
@@ -293,13 +287,9 @@ class MLPredictor:
                     "SUSTAIN": class_proba[list(self.classification_model.classes_).index('SUSTAIN')] if 'SUSTAIN' in self.classification_model.classes_ else 0
                 }
             }
+            
         except Exception as e:
-            return {
-                "prediction": "N/A",
-                "confidence": 0.0,
-                "action": "HOLD",
-                "error": f"Prediction failed: {str(e)}"
-            }
+            return {"error": f"Prediction failed: {str(e)}"}
     
     def _save_model(self):
         """Save trained models to disk"""
