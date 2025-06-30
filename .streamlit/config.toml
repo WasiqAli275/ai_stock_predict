@@ -1,0 +1,11 @@
+[server]
+headless = true
+address = "127.0.0.1"
+port = 8501
+
+[browser]
+serverAddress = "localhost"
+gatherUsageStats = false
+
+[theme]
+base = "dark"
