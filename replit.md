@@ -103,7 +103,3 @@ This is an AI-powered stock market prediction web application built with Streaml
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-
----
-
-**Note:** The HTML file (`custom_style_example.html`) was for design inspiration only and is not used directly in the Streamlit app. All styling is handled via custom CSS in `app.py`.
