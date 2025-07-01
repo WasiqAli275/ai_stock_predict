@@ -6,3 +6,5 @@ scikit-learn>=1.4.0
 xgboost>=2.0.0
 ta>=0.10.2
 requests>=2.31.0
+sqlite3>=3.41.0
+sqlalchemy>=2.0.30
