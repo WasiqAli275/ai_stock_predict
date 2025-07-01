@@ -150,3 +150,11 @@ This is an AI-powered stock market prediction web application built with Streaml
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Main thing you should know
+
+first if you can enter these line in CMD and then run the wepapp using streamlit.
+
+```bash
+set DATABASE_URL=sqlite:///mydb.sqlite3
+```
