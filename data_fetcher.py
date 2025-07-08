@@ -41,7 +41,7 @@ def _generate_demo_stock_data():
     df = pd.DataFrame(data, index=date_range)
     return df
 
-@st.cache_data
+# @st.cache_data # Temporarily disabled for debugging
 def _fetch_stock_data_core(symbol, interval, outputsize, api_key_to_use, base_url_to_use):
     """
     Core logic for fetching intraday stock data from Alpha Vantage, cached.

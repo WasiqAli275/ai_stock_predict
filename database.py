@@ -100,9 +100,9 @@ class DatabaseManager:
     """Manages database connections and operations"""
     
     def __init__(self):
-        self.database_url = os.getenv('DATABASE_URL')
-        if not self.database_url:
-            raise ValueError("DATABASE_URL environment variable not found")
+        # Use a default if DATABASE_URL is not set, suitable for local SQLite.
+        self.database_url = os.getenv('DATABASE_URL', 'sqlite:///mydb.sqlite3')
+        logger.info(f"Connecting to database: {self.database_url}") # Log the URL being used
         
         # Create engine with connection pooling
         self.engine = create_engine(
