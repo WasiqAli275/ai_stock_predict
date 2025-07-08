@@ -104,6 +104,10 @@ def main():
             st.error(f"Database connection failed: {str(e)}")
             st.session_state.db_initialized = False
     
+    # Initialize session state for stock symbol input if not already present
+    if 'stock_symbol_input' not in st.session_state:
+        st.session_state.stock_symbol_input = "AAPL" # Default initial symbol
+
     # Header
     st.markdown('<h1 class="main-header">🤖 AI Stock Market Predictor</h1>', unsafe_allow_html=True)
     
@@ -111,8 +115,15 @@ def main():
     with st.sidebar:
         st.header("⚙️ Configuration")
         
-        # Stock symbol input
-        symbol = st.text_input("Stock Symbol", value="AAPL", help="Enter stock symbol (e.g., AAPL, GOOGL, TSLA)")
+        # Stock symbol input using a key
+        # The widget's state is now directly tied to st.session_state.stock_symbol_input
+        st.text_input(
+            "Stock Symbol",
+            key="stock_symbol_input", # Ties widget state to session state
+            help="Enter stock symbol (e.g., AAPL, GOOGL, TSLA)"
+        )
+        # For debug display in sidebar, directly access the session state value
+        st.sidebar.write(f"DEBUG: Sidebar - Symbol from session_state.stock_symbol_input: {st.session_state.stock_symbol_input}") # DEBUG
         
         # Prediction timeframe
         timeframe = st.selectbox(
@@ -184,7 +195,10 @@ def main():
     
     # Main content area
     if predict_button:
-        if not symbol:
+        # Use the symbol from session state, which is synced with the text_input via its key
+        current_symbol = st.session_state.stock_symbol_input
+
+        if not current_symbol: # Check if the symbol from session state is empty
             st.error("Please enter a stock symbol!")
             return
         
@@ -200,7 +214,8 @@ def main():
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            st.header(f"📊 Analysis for {symbol.upper()}")
+            st.write(f"DEBUG: Inside predict_button block. Current Symbol from session_state: {current_symbol}") # DEBUG
+            st.header(f"📊 Analysis for {current_symbol.upper()}")
             
             # Progress bar
             progress_bar = st.progress(0)
@@ -210,16 +225,23 @@ def main():
                 # Step 1: Fetch data
                 status_text.text("🔄 Fetching stock data...")
                 progress_bar.progress(20)
-                df = data_fetcher.get_stock_data(symbol)
+                st.write(f"DEBUG: Calling get_stock_data with current_symbol: {current_symbol}") # DEBUG
+                df = data_fetcher.get_stock_data(current_symbol)
                 
                 if df is None or df.empty:
+                    st.write(f"DEBUG: df is None or empty after get_stock_data for current_symbol: {current_symbol}") # DEBUG
                     st.error("Failed to fetch stock data. Please check the symbol and try again.")
                     return
                 
+                st.write(f"DEBUG: df.head() for {current_symbol} after get_stock_data:") # DEBUG
+                st.dataframe(df.head()) # DEBUG
+
                 # Step 2: Technical analysis
                 status_text.text("📈 Calculating technical indicators...")
                 progress_bar.progress(40)
                 df_with_indicators = technical_analyzer.add_all_indicators(df)
+                st.write(f"DEBUG: df_with_indicators.head() for {current_symbol} after add_all_indicators:") # DEBUG
+                st.dataframe(df_with_indicators.head()) # DEBUG
                 
                 # Step 3: Pattern detection
                 status_text.text("🔍 Detecting candlestick patterns...")
@@ -249,10 +271,10 @@ def main():
                 if st.session_state.get('db_initialized', False):
                     try:
                         db = get_database_manager()
-                        db.store_stock_data(symbol, df)
-                        db.store_technical_indicators(symbol, df_with_indicators)
-                        db.store_prediction(symbol, prediction_result, timeframe, model_type.lower().replace(" ", "_"))
-                        db.store_detected_patterns(symbol, patterns)
+                        db.store_stock_data(current_symbol, df)
+                        db.store_technical_indicators(current_symbol, df_with_indicators)
+                        db.store_prediction(current_symbol, prediction_result, timeframe, model_type.lower().replace(" ", "_"))
+                        db.store_detected_patterns(current_symbol, patterns)
                     except Exception as e:
                         st.warning(f"Data storage warning: {str(e)}")
                 
@@ -262,12 +284,12 @@ def main():
                 # Display chart with fallback handling
                 st.subheader("📈 Interactive Chart")
                 try:
-                    chart = visualizer.create_candlestick_chart(df_with_indicators, symbol, chart_type)
+                    chart = visualizer.create_candlestick_chart(df_with_indicators, current_symbol, chart_type)
                     if chart is not None:
                         st.plotly_chart(chart, use_container_width=True)
                     else:
                         st.error("Chart display failed. Trying line chart...")
-                        chart = visualizer.create_candlestick_chart(df_with_indicators, symbol, "Line")
+                        chart = visualizer.create_candlestick_chart(df_with_indicators, current_symbol, "Line")
                         if chart is not None:
                             st.plotly_chart(chart, use_container_width=True)
                         else:
@@ -276,7 +298,7 @@ def main():
                     st.warning(f"Chart display issue: {str(chart_error)}")
                     st.info("Displaying simplified line chart...")
                     try:
-                        chart = visualizer.create_candlestick_chart(df_with_indicators, symbol, "Line")
+                        chart = visualizer.create_candlestick_chart(df_with_indicators, current_symbol, "Line")
                         st.plotly_chart(chart, use_container_width=True)
                     except Exception as fallback_error:
                         st.error(f"Chart fallback failed: {str(fallback_error)}")
@@ -497,8 +519,8 @@ def display_landing_page():
     cols = st.columns(4)
     for i, stock in enumerate(popular_stocks):
         with cols[i % 4]:
-            if st.button(f"📈 {stock}", key=f"stock_{stock}"):
-                st.session_state.selected_stock = stock
+            if st.button(f"📈 {stock}", key=f"popular_stock_btn_{stock}"): # Ensure unique keys for these buttons
+                st.session_state.stock_symbol_input = stock # Update the centralized session state
                 st.rerun()
 
 if __name__ == "__main__":

@@ -133,7 +133,7 @@ def _add_other_indicators_static(df_input):
     return df
 
 # --- Core cached function for calculating all indicators ---
-@st.cache_data
+# @st.cache_data # Temporarily disabled for debugging
 def _calculate_indicators_core(input_df):
     """
     Core logic for adding all technical indicators, cached.
