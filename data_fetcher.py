@@ -16,6 +16,7 @@ class StockDataFetcher:
         self.api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "demo")
         self.base_url = "https://www.alphavantage.co/query"
         
+    @st.cache_data
     def get_stock_data(self, symbol, interval="1min", outputsize="compact"):
         """
         Fetch intraday stock data from Alpha Vantage

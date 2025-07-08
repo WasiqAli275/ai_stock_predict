@@ -11,6 +11,7 @@ class TechnicalAnalyzer:
     def __init__(self):
         pass
     
+    @st.cache_data
     def add_all_indicators(self, df):
         """
         Add all technical indicators to the dataframe
