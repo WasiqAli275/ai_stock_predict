@@ -21,10 +21,49 @@ class MLPredictor:
         self.scaler = StandardScaler()
         self.feature_columns = []
         self.is_trained = False
-        
+        self.model_type = model_type # Ensure model_type is set before loading
+
         # Try to load existing model
-        self._load_model()
+        loaded_data = self._cached_load_model(self.model_type)
+        if loaded_data:
+            self.classification_model = loaded_data.get('classification_model')
+            self.regression_model = loaded_data.get('regression_model')
+            self.scaler = loaded_data.get('scaler', StandardScaler())
+            self.feature_columns = loaded_data.get('feature_columns', [])
+            # self.model_type remains as passed to __init__
+            self.is_trained = loaded_data.get('is_trained', False)
+        else:
+            # Initialize defaults if model loading failed or no model exists
+            self.classification_model = None
+            self.regression_model = None
+            self.scaler = StandardScaler() # Ensure scaler is always initialized
+            self.is_trained = False
     
+    @staticmethod
+    @st.cache_resource
+    def _cached_load_model(model_type_to_load):
+        """Load trained models from disk, cached by Streamlit."""
+        try:
+            filename = f"ml_models_{model_type_to_load}.pkl"
+            if os.path.exists(filename):
+                with open(filename, 'rb') as f:
+                    model_data = pickle.load(f)
+                # Ensure all necessary keys are present, provide defaults if not
+                return {
+                    'classification_model': model_data.get('classification_model'),
+                    'regression_model': model_data.get('regression_model'),
+                    'scaler': model_data.get('scaler', StandardScaler()),
+                    'feature_columns': model_data.get('feature_columns', []),
+                    'model_type': model_data.get('model_type', model_type_to_load),
+                    'is_trained': model_data.get('is_trained', False)
+                }
+            else:
+                print(f"Model file {filename} not found.")
+                return None
+        except Exception as e:
+            print(f"Error loading model {model_type_to_load}: {str(e)}")
+            return None
+
     def _prepare_features(self, df):
         """
         Prepare features for machine learning
@@ -165,6 +204,8 @@ class MLPredictor:
             )
             
             # Scale features
+            # Ensure scaler is fitted only on training data
+            self.scaler = StandardScaler() # Re-initialize scaler before fitting
             X_train_scaled = self.scaler.fit_transform(X_train)
             X_test_scaled = self.scaler.transform(X_test)
             
@@ -231,26 +272,34 @@ class MLPredictor:
             dict: Prediction results
         """
         try:
-            # If models are not trained, train them first
-            if not self.is_trained or self.classification_model is None:
-                training_result = self.train_models(df, timeframe)
-                if "error" in training_result:
-                    return {"error": training_result["error"]}
-            
+            # If models are not trained or loaded, this is an issue.
+            if not self.is_trained or self.classification_model is None or self.regression_model is None:
+                # This part will be addressed in the next plan step to prevent on-the-fly training
+                # For now, let's assume _cached_load_model handles providing a usable state or None
+                # And if it's None, we should error out rather than train.
+                # This specific check will be refined in the "Prevent On-the-Fly Training" step.
+                 return {"error": f"Model {self.model_type} is not trained or loaded properly. Please ensure the model .pkl file exists."}
+
             # Prepare features
             features = self._prepare_features(df)
             
             if features.empty:
                 return {"error": "No features available for prediction"}
-            
+
+            if not self.feature_columns:
+                return {"error": "Model feature columns not loaded. Model may not be trained or loaded correctly."}
+
             # Use the last row for prediction
-            latest_features = features.iloc[-1:][self.feature_columns]
+            latest_features = features.iloc[-1:][self.feature_columns] # Ensure only known features are used
             
-            # Handle missing columns
+            # Handle missing columns in latest_features (e.g. if a feature couldn't be calculated for the last row)
+            # This should ideally not happen if _prepare_features is robust and data is clean
             for col in self.feature_columns:
                 if col not in latest_features.columns:
-                    latest_features[col] = 0
+                    latest_features[col] = 0 # Or a more sophisticated imputation
             
+            latest_features = latest_features[self.feature_columns] # Reorder to match training
+
             # Scale features
             latest_scaled = self.scaler.transform(latest_features)
             
@@ -272,7 +321,7 @@ class MLPredictor:
                 action = 'HOLD'
             
             # Adjust action based on confidence
-            if confidence < 0.6:
+            if confidence < 0.6: # This threshold is from original code
                 action = 'HOLD'
             
             return {
@@ -293,6 +342,8 @@ class MLPredictor:
     
     def _save_model(self):
         """Save trained models to disk"""
+        # This method is primarily for the training phase, not typically called during live prediction.
+        # If called, it should save the current state of the instance's models.
         try:
             model_data = {
                 'classification_model': self.classification_model,
@@ -306,25 +357,10 @@ class MLPredictor:
             filename = f"ml_models_{self.model_type}.pkl"
             with open(filename, 'wb') as f:
                 pickle.dump(model_data, f)
+            print(f"Model {self.model_type} saved to {filename}")
                 
         except Exception as e:
             print(f"Error saving model: {str(e)}")
     
-    def _load_model(self):
-        """Load trained models from disk"""
-        try:
-            filename = f"ml_models_{self.model_type}.pkl"
-            if os.path.exists(filename):
-                with open(filename, 'rb') as f:
-                    model_data = pickle.load(f)
-                
-                self.classification_model = model_data.get('classification_model')
-                self.regression_model = model_data.get('regression_model')
-                self.scaler = model_data.get('scaler', StandardScaler())
-                self.feature_columns = model_data.get('feature_columns', [])
-                self.model_type = model_data.get('model_type', self.model_type)
-                self.is_trained = model_data.get('is_trained', False)
-                
-        except Exception as e:
-            print(f"Error loading model: {str(e)}")
-            self.is_trained = False
+    # The _load_model method is now replaced by _cached_load_model (static)
+    # and its logic integrated into __init__
